@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Equipment Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body { background-color: #f4f6f9; padding: 20px; font-family: 'Segoe UI', sans-serif; }
+        .dashboard-container { background-color: white; border-radius: 4px; padding: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .control-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        
+        /* Table & Action Styles */
+        .table-responsive { overflow-x: auto; }
+        .table thead th { border-top: 2px solid #28a745; border-bottom: 2px solid #28a745; color: #666; font-weight: 600; white-space: nowrap; }
+        .btn-action { border: none; background: none; cursor: pointer; margin-left: 5px; padding: 2px 5px; }
+        .btn-action:hover { opacity: 0.7; }
+        .text-edit { color: #f0ad4e; }
+        .modal-header-edit { background-color: #fff3cd; }
+        
+        /* Filter Modal Styles */
+        .filter-section-title { font-size: 0.9rem; font-weight: 700; color: #555; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+        .filter-group { margin-bottom: 15px; }
+
+        /* ========================================
+           PRINT MODE CSS (Portrait - Scaled to Fit)
+           ========================================
+        */
+        @media print {
+            /* 1. Portrait Mode */
+            @page { 
+                size: portrait; 
+                margin: 10mm; /* Moderate margin to keep browser Header/Footer visible */
+            }
+
+            /* 2. Hide Non-Essentials */
+            .no-print, 
+            .control-bar, 
+            .page-header button, 
+            .column-actions, 
+            input[type="checkbox"] { 
+                display: none !important; 
+            }
+
+            /* 3. SCALING MAGIC: Zoom out to fit 9 columns */
+            body {
+                zoom: 65%; /* Shrinks everything to 65% size */
+                -webkit-print-color-adjust: exact; /* Keeps colors accurate */
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .dashboard-container {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                width: 100% !important;
+            }
+
+            /* 4. Table Formatting */
+            .table-responsive {
+                overflow: visible !important;
+                display: block !important;
+            }
+
+            .table {
+                width: 100% !important;
+                table-layout: fixed !important; /* Forces columns to stay inside the page */
+                border-collapse: collapse !important;
+            }
+
+            .table th, .table td {
+                font-size: 10pt !important; /* Readable size (since we zoomed the body) */
+                padding: 4px !important;
+                
+                /* Wrap long text (like Specifications) */
+                white-space: normal !important; 
+                overflow-wrap: break-word !important;
+                word-wrap: break-word !important;
+                
+                border: 1px solid #999 !important;
+                color: #000 !important;
+            }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container-fluid dashboard-container">
+    
+    <div class="page-header no-print">
+        <div class="header-title" style="font-size: 1.5rem; font-weight: 500;">
+            <i class="fas fa-list" style="color:#999;"></i> Equipment
+        </div>
+        <div>
+            <button class="btn btn-secondary me-2" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+                <i class="fas fa-tags"></i> Category
+            </button>
+            <div class="btn-group">
+                <button class="btn btn-primary" style="background-color: #357ebd;" data-bs-toggle="modal" data-bs-target="#addEquipmentModal">+ New</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <div class="search-wrapper no-print" style="width: 300px; position: relative;">
+            <input type="text" class="form-control" id="searchInput" placeholder="Quick Search (ID/Name)..." onkeyup="filterTable()">
+            <i class="fas fa-search" style="position: absolute; right: 10px; top: 10px; color: #999;"></i>
+        </div>
+        
+        <div class="filters-wrapper">
+            <button class="btn btn-outline-primary btn-sm no-print me-2" data-bs-toggle="modal" data-bs-target="#filterModal" onclick="populateFilterCategories()">
+                <i class="fas fa-filter"></i> Advanced Filter
+            </button>
+            
+            <button class="btn btn-outline-secondary btn-sm no-print" onclick="window.print()">
+                <i class="fas fa-print"></i> Print List
+            </button>
+        </div>
+    </div>
+    <div id="active-filters" class="d-flex flex-wrap gap-2 mb-3 no-print"></div>
+    <div class="table-responsive">
+        <table class="table table-hover" id="equipmentTable">
+            <thead>
+                <tr>
+                    <th class="no-print"><input type="checkbox"></th>
+                    <th>Asset ID</th>
+                    <th>Category</th>
+                    <th>Parent Asset ID</th>
+                    <th>Name</th>
+                    <th>Location Code</th>
+                    <th>Status</th>
+                    <th>Specifications</th>
+                    <th>Purchase Date</th>
+                    <th>Criticality</th>
+                    <th class="text-end column-actions">Edit Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in equipment_list %}
+                <tr>
+                    <td class="no-print"><input type="checkbox"></td>
+                    
+                    <td>{{ item.asset_id }}</td>
+
+                    <td data-cat-id="{{ item.category_id }}">{{ item.category_name }}</td>
+
+                    <td>{{ item.parent_asset_id }}</td>
+
+                    <td>{{ item.name }}</td>
+
+                    <td>{{ item.location_code }}</td>
+
+                    <td>{{ item.status }}</td>
+
+                    <td>{{ item.specifications }}</td>
+
+                    <td>{{ item.purchase_date }}</td>
+
+                    <td>{{ item.criticality }}</td>
+
+                    <td class="text-end column-actions">
+                        <button class="btn-action text-edit" onclick="populateEditModal(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="11" class="text-center text-muted py-4">No assets found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="filterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-filter text-primary"></i> Filter Equipment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="filterForm">
+                    <div class="filter-group">
+                        <div class="filter-section-title">Category</div>
+                        <select class="form-select form-select-sm" id="filter_category">
+                            <option value="ALL">All Categories</option>
+                            </select>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-section-title">Status</div>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="Active" id="st_active"><label class="form-check-label" for="st_active">Active</label></div>
+                            <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="In_Repair" id="st_repair"><label class="form-check-label" for="st_repair">In Repair</label></div>
+                            <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="Retired" id="st_retired"><label class="form-check-label" for="st_retired">Retired</label></div>
+                            <div class="form-check"><input class="form-check-input filter-status" type="checkbox" value="Disposed" id="st_disposed"><label class="form-check-label" for="st_disposed">Disposed</label></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-section-title">Criticality</div>
+                        <div class="d-flex gap-3">
+                            <div class="form-check"><input class="form-check-input filter-crit" type="checkbox" value="A" id="cr_a"><label class="form-check-label" for="cr_a">A</label></div>
+                            <div class="form-check"><input class="form-check-input filter-crit" type="checkbox" value="B" id="cr_b"><label class="form-check-label" for="cr_b">B</label></div>
+                            <div class="form-check"><input class="form-check-input filter-crit" type="checkbox" value="C" id="cr_c"><label class="form-check-label" for="cr_c">C</label></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group">
+                        <div class="filter-section-title">Purchase Date</div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text">From</span>
+                            <input type="date" class="form-control" id="filter_date_start">
+                            <span class="input-group-text">To</span>
+                            <input type="date" class="form-control" id="filter_date_end">
+                        </div>
+                        <small class="text-muted">For a specific date, select the same date in both.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="clearAdvancedFilter()">Clear All</button>
+                <button type="button" class="btn btn-primary" onclick="applyAdvancedFilter()" data-bs-dismiss="modal">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addEquipmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Equipment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addEquipmentForm" action="{{ url_for('equipment_bp.add_equipment') }}" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Asset ID <span class="text-danger">*</span></label><input type="text" class="form-control" name="asset_id" required></div>
+                        <div class="col-md-6"><label class="form-label">Name <span class="text-danger">*</span></label><input type="text" class="form-control" name="name" required></div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label">Category Name <span class="text-danger">*</span></label>
+                            <select class="form-select" id="category_select" onchange="updateCategoryID()" required>
+                                <option value="" selected disabled>Select Category...</option>
+                                {% for cat in category_list %}
+                                    <option value="{{ cat.category_id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6"><label class="form-label">Category ID</label><input type="text" class="form-control bg-light" id="category_id_box" name="category_id" readonly required></div>
+                        
+                        <div class="col-md-6"><label class="form-label">Location Code <span class="text-danger">*</span></label><input type="text" class="form-control" name="location_code" required></div>
+                        
+                        <div class="col-md-6"><label class="form-label">Status <span class="text-danger">*</span></label><select class="form-select" name="status"><option>Active</option><option>In_Repair</option><option>Retired</option><option>Disposed</option></select></div>
+                        
+                        <div class="col-md-6"><label class="form-label">Purchase Date <span class="text-danger">*</span></label><input type="date" class="form-control" name="purchase_date"></div>
+                        
+                        <div class="col-md-6"><label class="form-label">Criticality <span class="text-danger">*</span></label><select class="form-select" name="criticality"><option>A</option><option>B</option><option>C</option></select></div>
+                        
+                        <div class="col-12"><label class="form-label">Specifications</label><textarea class="form-control" name="specifications" rows="3"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="addEquipmentForm" class="btn btn-primary">Save Equipment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editEquipmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header modal-header-edit">
+                <h5 class="modal-title">Edit Equipment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editEquipmentForm" action="{{ url_for('equipment_bp.edit_equipment') }}" method="POST">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label">Asset ID</label><input type="text" class="form-control bg-light" id="edit_asset_id" name="asset_id" readonly></div>
+                        <div class="col-md-6"><label class="form-label">Name</label><input type="text" class="form-control" id="edit_name" name="name"></div>
+                        <div class="col-md-6"><label class="form-label">Category ID</label><input type="text" class="form-control" id="edit_category_id" name="category_id"></div>
+                        <div class="col-md-6"><label class="form-label">Location Code</label><input type="text" class="form-control" id="edit_location_code" name="location_code"></div>
+                        <div class="col-md-6"><label class="form-label">Status</label><select class="form-select" id="edit_status" name="status"><option>Active</option><option>In_Repair</option><option>Retired</option><option>Disposed</option></select></div>
+                        <div class="col-md-6"><label class="form-label">Criticality</label><select class="form-select" id="edit_criticality" name="criticality"><option>A</option><option>B</option><option>C</option></select></div>
+                        <div class="col-12"><label class="form-label">Specifications</label><textarea class="form-control" id="edit_specifications" name="specifications" rows="3"></textarea></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="editEquipmentForm" class="btn btn-warning">Update Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Category</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCategoryForm" action="{{ url_for('equipment_bp.add_category') }}" method="POST">
+                    <div class="mb-3"><label class="form-label">Category ID</label><input type="number" class="form-control bg-light" id="new_category_id" name="category_id" readonly required></div>
+                    <div class="mb-3"><label class="form-label">Name <span class="text-danger">*</span></label><input type="text" class="form-control" name="name" required></div>
+                    <div class="mb-3"><label class="form-label">Schema Definition</label><textarea class="form-control" name="schema_definition" placeholder='e.g. {"engine": "type"}'></textarea></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" form="addCategoryForm" class="btn btn-primary">Save Category</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // -----------------------------------------------------
+    // 1. FILTER LOGIC (Client-Side + Badges)
+    // -----------------------------------------------------
+
+    // A. Fill Dropdown with Unique Categories
+    function populateFilterCategories() {
+        var table = document.getElementById("equipmentTable");
+        var tr = table.getElementsByTagName("tr");
+        var uniqueCats = new Set();
+        var select = document.getElementById("filter_category");
+        
+        // Preserve current selection if re-populating
+        var currentVal = select.value;
+        select.innerHTML = '<option value="ALL">All Categories</option>';
+
+        for (var i = 1; i < tr.length; i++) {
+            var catCell = tr[i].getElementsByTagName("td")[2]; // Index 2 = Category Name
+            if (catCell) {
+                var catName = catCell.innerText.trim();
+                if (catName) uniqueCats.add(catName);
+            }
+        }
+
+        uniqueCats.forEach(function(cat) {
+            var opt = document.createElement("option");
+            opt.value = cat;
+            opt.innerHTML = cat;
+            select.appendChild(opt);
+        });
+        
+        if(currentVal) select.value = currentVal;
+    }
+
+    // B. Apply Filters & Generate Badges
+    function applyAdvancedFilter() {
+        // --- STEP 1: READ VALUES ---
+        var catFilter = document.getElementById("filter_category").value;
+        var startFilter = document.getElementById("filter_date_start").value;
+        var endFilter = document.getElementById("filter_date_end").value;
+
+        // Get Checkboxes (Store ID to allow unchecking later)
+        var statusChecked = []; // Objects: {val: 'Active', id: 'st_active'}
+        document.querySelectorAll('.filter-status:checked').forEach(el => {
+            statusChecked.push({val: el.value, id: el.id});
+        });
+
+        var critChecked = [];
+        document.querySelectorAll('.filter-crit:checked').forEach(el => {
+            critChecked.push({val: el.value, id: el.id});
+        });
+
+        // --- STEP 2: UPDATE TABLE VISIBILITY ---
+        var table = document.getElementById("equipmentTable");
+        var tr = table.getElementsByTagName("tr");
+        
+        // Convert check lists to simple arrays for comparison
+        var statusVals = statusChecked.map(x => x.val);
+        var critVals = critChecked.map(x => x.val);
+
+        for (var i = 1; i < tr.length; i++) {
+            var showRow = true;
+            var cells = tr[i].getElementsByTagName("td");
+            // [2]=Category, [6]=Status, [8]=Date, [9]=Criticality
+
+            // Category
+            if (catFilter !== "ALL" && cells[2].innerText.trim() !== catFilter) showRow = false;
+            
+            // Status (Multi-select)
+            if (showRow && statusVals.length > 0 && !statusVals.includes(cells[6].innerText.trim())) showRow = false;
+            
+            // Criticality (Multi-select)
+            if (showRow && critVals.length > 0 && !critVals.includes(cells[9].innerText.trim())) showRow = false;
+
+            // Date Range
+            if (showRow && (startFilter || endFilter)) {
+                var rowDate = cells[8].innerText.trim();
+                if (!rowDate || rowDate === "None") {
+                    showRow = false;
+                } else {
+                    if (startFilter && rowDate < startFilter) showRow = false;
+                    if (endFilter && rowDate > endFilter) showRow = false;
+                }
+            }
+            tr[i].style.display = showRow ? "" : "none";
+        }
+
+        // --- STEP 3: GENERATE CHIPS (BADGES) ---
+        var container = document.getElementById("active-filters");
+        container.innerHTML = ""; // Clear old chips
+
+        // Helper to create chip
+        function createChip(text, onClickFunction) {
+            var btn = document.createElement("button");
+            btn.className = "btn btn-sm btn-secondary d-flex align-items-center";
+            btn.style.fontSize = "0.85rem";
+            btn.innerHTML = `${text} <i class="fas fa-times ms-2"></i>`;
+            btn.onclick = onClickFunction;
+            container.appendChild(btn);
+        }
+
+        // 1. Category Chip
+        if (catFilter !== "ALL") {
+            createChip(`Category: ${catFilter}`, function() {
+                document.getElementById("filter_category").value = "ALL";
+                applyAdvancedFilter();
+            });
+        }
+
+        // 2. Status Chips
+        statusChecked.forEach(function(item) {
+            createChip(`Status: ${item.val}`, function() {
+                document.getElementById(item.id).checked = false;
+                applyAdvancedFilter();
+            });
+        });
+
+        // 3. Criticality Chips
+        critChecked.forEach(function(item) {
+            createChip(`Crit: ${item.val}`, function() {
+                document.getElementById(item.id).checked = false;
+                applyAdvancedFilter();
+            });
+        });
+
+        // 4. Date Chips
+        if (startFilter) {
+            createChip(`From: ${startFilter}`, function() {
+                document.getElementById("filter_date_start").value = "";
+                applyAdvancedFilter();
+            });
+        }
+        if (endFilter) {
+            createChip(`To: ${endFilter}`, function() {
+                document.getElementById("filter_date_end").value = "";
+                applyAdvancedFilter();
+            });
+        }
+    }
+
+    // C. Clear All
+    function clearAdvancedFilter() {
+        document.getElementById("filterForm").reset();
+        document.getElementById("active-filters").innerHTML = ""; // Clear chips
+        var tr = document.getElementById("equipmentTable").getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            tr[i].style.display = "";
+        }
+    }
+
+    // -----------------------------------------------------
+    // STANDARD LOGIC
+    // -----------------------------------------------------
+
+    function updateCategoryID() {
+        var dropdown = document.getElementById("category_select");
+        var idBox = document.getElementById("category_id_box");
+        idBox.value = dropdown.value; 
+    }
+
+    function populateEditModal(button) {
+        var row = button.closest("tr");
+        var cells = row.getElementsByTagName("td");
+        document.getElementById("edit_asset_id").value = cells[1].innerText;
+        var catID = cells[2].getAttribute("data-cat-id");
+        document.getElementById("edit_category_id").value = catID;
+        document.getElementById("edit_name").value = cells[4].innerText;
+        document.getElementById("edit_location_code").value = cells[5].innerText;
+        document.getElementById("edit_status").value = cells[6].innerText;
+        document.getElementById("edit_specifications").value = cells[7].innerText;
+        document.getElementById("edit_criticality").value = cells[9].innerText;
+        var myModal = new bootstrap.Modal(document.getElementById('editEquipmentModal'));
+        myModal.show();
+    }
+
+    // Auto-fetch Category ID on Open
+    var addCategoryModal = document.getElementById('addCategoryModal');
+    addCategoryModal.addEventListener('show.bs.modal', function (event) {
+        fetch('/get_next_category_id')
+            .then(response => response.json())
+            .then(data => { document.getElementById('new_category_id').value = data.next_id; })
+            .catch(error => console.error('Error fetching ID:', error));
+    });
+
+    // Simple Search (ID/Name)
+    function filterTable() {
+        var input = document.getElementById("searchInput");
+        var filter = input.value.toUpperCase();
+        var table = document.getElementById("equipmentTable");
+        var tr = table.getElementsByTagName("tr");
+        for (var i = 1; i < tr.length; i++) {
+            var tdName = tr[i].getElementsByTagName("td")[4];
+            var tdId = tr[i].getElementsByTagName("td")[1];
+            if (tdName || tdId) {
+                if (tdName.textContent.toUpperCase().indexOf(filter) > -1 || tdId.textContent.toUpperCase().indexOf(filter) > -1) {
+                    tr[i].style.display = "";
+                } else {
+                    tr[i].style.display = "none";
+                }
+            }
+        }
+    }
+</script>
+</body>
+</html>
