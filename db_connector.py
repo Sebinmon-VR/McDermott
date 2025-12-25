@@ -1,37 +1,23 @@
-import os
 import mysql.connector
-from mysql.connector import Error
+import os
 from dotenv import load_dotenv
 
-# Load variables from the .env file
+# Load variables
 load_dotenv()
 
-def connect_to_db():
-    connection = None
+def get_db_connection():
     try:
-        # Fetch credentials using os.getenv
+        # 1. Open the connection
         connection = mysql.connector.connect(
-            host=os.getenv("DB_HOST"),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            port=int(os.getenv("DB_PORT", 3306)) # Default to 3306 if missing
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME')
         )
-
-        if connection.is_connected():
-            print("✅ Successfully connected to the database using .env credentials!")
-            
-            # Print database info to verify
-            db_info = connection.get_server_info()
-            print(f"   Connected to MySQL Server version: {db_info}")
-
-    except Error as e:
-        print(f"❌ Error while connecting: {e}")
         
-    finally:
-        if connection and connection.is_connected():
-            connection.close()
-            print("🔒 Connection closed")
-
-# if __name__ == '__main__':
-#     connect_to_db()
+        # 2. Return it OPEN (Do not close it here!)
+        return connection
+        
+    except mysql.connector.Error as err:
+        print(f"❌ DATABASE ERROR: {err}", flush=True)
+        return None
