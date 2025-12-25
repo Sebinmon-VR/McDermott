@@ -8,6 +8,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+        setTimeout(function () {
+            let alert = document.querySelector('.alert');
+            if (alert) { new bootstrap.Alert(alert).close(); }
+        }, 4000);
+    </script>
 </head>
 
 <body>
@@ -20,6 +26,17 @@
         <div class="main-content">
             <div class="p-4">
 
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i> {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
                 <div class="page-header">
                     <h2 class="page-title">Home</h2>
                     <a href="#" class="text-decoration-none text-primary" style="font-size: 0.9rem;">All Locations</a>
@@ -30,10 +47,11 @@
                         <div class="stat-card border-top border-4 border-primary">
                             <i class="fas fa-cog stat-icon-bg"></i>
                             <h6>Equipment Due</h6>
-                            <div class="stat-number">6</div>
+                            <div class="stat-number">{{ work_orders|length }}</div>
                             <div class="stat-footer">
-                                <span class="text-danger fw-bold">4 Overdue</span> <span class="text-muted">|</span>
-                                <span class="text-warning">2 Soon Due</span>
+                                <span class="text-danger fw-bold">{{ count_open }} Open</span> <span
+                                    class="text-muted">|</span>
+                                <span class="text-warning">{{ count_inprogress }} In Progress</span>
                             </div>
                         </div>
                     </div>
@@ -52,10 +70,9 @@
                         <div class="stat-card">
                             <i class="fas fa-user stat-icon-bg"></i>
                             <h6>Employees Due</h6>
-                            <div class="stat-number">7</div>
+                            <div class="stat-number">0</div>
                             <div class="stat-footer">
-                                <span class="text-danger fw-bold">7 Overdue</span> <span class="text-muted">|</span>
-                                <span class="text-muted">0 Soon Due</span>
+                                <span class="text-muted">No alerts</span>
                             </div>
                         </div>
                     </div>
@@ -79,30 +96,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    <tr class="row-selected">
-                                        <td class="col-icon">
-                                            <div class="icon-plus-box"><i class="fas fa-plus"
-                                                    style="font-size: 10px;"></i></div>
-                                        </td>
-                                        <td class="col-check"><input type="checkbox" class="form-check-input" checked>
-                                        </td>
-                                        <td>
-                                            <span class="unit-id">E142</span>
-                                            <span class="unit-desc">15 ' 1517 John Deere Mower</span>
-                                        </td>
-                                        <td>
-                                            <div class="status-container">
-                                                <span class="status-dot dot-red"></span>
-                                                <span class="status-text-red">Overdue</span>
-                                                <span class="status-detail">(Repair)</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-actions">
-                                            <a href="{{ url_for('work_order') }}"
-                                                class="btn-issue text-decoration-none">Issue WO</a>
-                                        </td>
-                                    </tr>
-
+                                    {% for wo in work_orders %}
                                     <tr class="row-base">
                                         <td class="col-icon">
                                             <div class="icon-plus-box"><i class="fas fa-plus"
@@ -110,119 +104,51 @@
                                         </td>
                                         <td class="col-check"><input type="checkbox" class="form-check-input"></td>
                                         <td>
-                                            <span class="unit-id">M276</span>
-                                            <span class="unit-desc">Ingersoll-Rand Air Compressor</span>
+                                            {% if wo.unit_number %}
+                                            <span class="unit-id" style="font-size: 0.85rem;"
+                                                title="{{ wo.unit_number }}">
+                                                {{ wo.unit_number[:8] }}...
+                                            </span>
+                                            {% else %}
+                                            <span class="unit-id text-muted">--</span>
+                                            {% endif %}
+                                            <span class="unit-desc">{{ wo.asset_name }}</span>
                                         </td>
                                         <td>
                                             <div class="status-container">
+                                                {% if wo.status == 'Open' %}
                                                 <span class="status-dot dot-red"></span>
-                                                <span class="status-text-red">Overdue</span>
-                                                <span class="status-detail">(PM)</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-actions">
-                                            <a href="{{ url_for('work_order') }}"
-                                                class="btn-issue text-decoration-none">Issue WO</a>
-                                        </td>
-                                    </tr>
-
-                                    <tr class="row-base">
-                                        <td class="col-icon">
-                                            <div class="icon-plus-box"><i class="fas fa-plus"
-                                                    style="font-size: 10px;"></i></div>
-                                        </td>
-                                        <td class="col-check"><input type="checkbox" class="form-check-input"></td>
-                                        <td>
-                                            <span class="unit-id">PD158</span>
-                                            <span class="unit-desc">2015 Chevy Tahoe</span>
-                                        </td>
-                                        <td>
-                                            <div class="status-container">
+                                                <span class="status-text-red">Open</span>
+                                                {% elif wo.status == 'In_Progress' %}
                                                 <span class="status-dot dot-orange"></span>
-                                                <span class="status-text-orange">Soon Due</span>
-                                                <span class="status-detail">(PM)</span>
+                                                <span class="status-text-orange">In Progress</span>
+                                                {% else %}
+                                                <span class="status-dot" style="background-color: #198754;"></span>
+                                                <span style="color: #198754; font-weight: 700;">{{ wo.status }}</span>
+                                                {% endif %}
+
+                                                <span class="status-detail">({{ wo.wo_type }})</span>
                                             </div>
                                         </td>
                                         <td class="col-actions">
-                                            <a href="{{ url_for('work_order') }}"
+                                            <a href="{{ url_for('work_order', wo_id=wo.wo_id) }}"
                                                 class="btn-issue text-decoration-none">Issue WO</a>
                                         </td>
                                     </tr>
+                                    {% endfor %}
 
-                                    <tr class="row-base">
-                                        <td class="col-icon">
-                                            <div class="icon-plus-box"><i class="fas fa-plus"
-                                                    style="font-size: 10px;"></i></div>
-                                        </td>
-                                        <td class="col-check"><input type="checkbox" class="form-check-input"></td>
-                                        <td>
-                                            <span class="unit-id">PD330</span>
-                                            <span class="unit-desc">2013 Ford Expedition</span>
-                                        </td>
-                                        <td>
-                                            <div class="status-container">
-                                                <span class="status-dot dot-orange"></span>
-                                                <span class="status-text-orange">Soon Due</span>
-                                                <span class="status-detail">(PM)</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-actions">
-                                            <a href="{{ url_for('work_order') }}"
-                                                class="btn-issue text-decoration-none">Issue WO</a>
+                                    {% if work_orders|length == 0 %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            No Work Orders Found.
                                         </td>
                                     </tr>
-
-                                    <tr class="row-base">
-                                        <td class="col-icon">
-                                            <div class="icon-plus-box"><i class="fas fa-plus"
-                                                    style="font-size: 10px;"></i></div>
-                                        </td>
-                                        <td class="col-check"><input type="checkbox" class="form-check-input"></td>
-                                        <td>
-                                            <span class="unit-id">T105</span>
-                                            <span class="unit-desc">Black 16' Trailer</span>
-                                        </td>
-                                        <td>
-                                            <div class="status-container">
-                                                <span class="status-dot dot-red"></span>
-                                                <span class="status-text-red">Overdue</span>
-                                                <span class="status-detail">(Renewal)</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-actions"><button class="btn-issue">Update</button></td>
-                                    </tr>
-
-                                    <tr class="row-overdue-border">
-                                        <td class="col-icon">
-                                            <div class="icon-plus-box"><i class="fas fa-plus"
-                                                    style="font-size: 10px;"></i></div>
-                                        </td>
-                                        <td class="col-check"><input type="checkbox" class="form-check-input"></td>
-                                        <td>
-                                            <span class="unit-id">V-004</span>
-                                            <span class="unit-desc">John Deere WA 380 Loader</span>
-                                        </td>
-                                        <td>
-                                            <div class="status-container">
-                                                <span class="status-dot dot-red"></span>
-                                                <span class="status-text-red">Overdue</span>
-                                                <span class="status-detail">(PM, Repair)</span>
-                                            </div>
-                                        </td>
-                                        <td class="col-actions">
-                                            <a href="{{ url_for('work_order') }}"
-                                                class="btn-issue text-decoration-none">Issue WO</a>
-                                        </td>
-                                    </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
 
                             <div class="table-footer">
-                                <span>6 listed, 1 selected</span>
-                                <div class="text-secondary">
-                                    <i class="fas fa-print me-3 cursor-pointer"></i>
-                                    <i class="fas fa-cog cursor-pointer"></i>
-                                </div>
+                                <span>{{ work_orders|length }} listed</span>
                             </div>
                         </div>
                     </div>
@@ -232,11 +158,14 @@
                             <h6>Work Orders</h6>
                             <div class="chart-container mt-4">
                                 <canvas id="woChart"></canvas>
-                                <div class="chart-center-text">2</div>
+                                <div class="chart-center-text">{{ work_orders|length }}</div>
                             </div>
-                            <div class="text-center mt-4" style="font-size: 0.9rem;">
-                                <span class="me-3"><i class="fas fa-square text-success"></i> 1 Open</span>
-                                <span><i class="fas fa-square text-warning"></i> 1 In Progress</span>
+                            <div class="text-center mt-4" style="font-size: 0.85rem;">
+                                <span class="me-2"><i class="fas fa-square text-danger"></i> {{ count_open }}
+                                    Open</span>
+                                <span class="me-2"><i class="fas fa-square text-warning"></i> {{ count_inprogress }} In
+                                    Prog</span>
+                                <span><i class="fas fa-square text-success"></i> {{ count_completed }} Done</span>
                             </div>
                         </div>
 
@@ -250,18 +179,24 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const openCount = Number("{{ count_open }}");
+        const progCount = Number("{{ count_inprogress }}");
+        const compCount = Number("{{ count_completed }}");
+
         const ctx = document.getElementById('woChart').getContext('2d');
         const woChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Open', 'In Progress'],
+                labels: ['Open', 'In Progress', 'Completed'],
                 datasets: [{
-                    data: [1, 1],
+                    data: [openCount, progCount, compCount],
                     backgroundColor: [
-                        '#10b981',
-                        '#f59e0b'
+                        '#dc3545', // Red
+                        '#ffc107', // Yellow/Orange
+                        '#198754'  // Green
                     ],
                     borderWidth: 0,
                     cutout: '75%'
@@ -270,7 +205,7 @@
             options: {
                 plugins: {
                     legend: { display: false },
-                    tooltip: { enabled: false }
+                    tooltip: { enabled: true }
                 },
                 responsive: true,
                 maintainAspectRatio: false

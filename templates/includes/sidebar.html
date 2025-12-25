@@ -1,8 +1,14 @@
 <div class="sidebar">
     <nav class="nav flex-column mt-1">
-        <a class="nav-link active" href="#"><i class="fas fa-home"></i> Home</a>
+        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+            <i class="fas fa-home"></i> Home
+        </a>
+        
+        <a class="nav-link {% if request.endpoint in ['work_orders_list', 'work_order'] %}active{% endif %}" href="{{ url_for('work_orders_list') }}">
+            <i class="fas fa-clipboard-list"></i> Work Orders
+        </a>
+        
         <a class="nav-link" href="#"><i class="fas fa-cog"></i> Equipment</a>
-        <a class="nav-link" href="#"><i class="fas fa-clipboard-list"></i> Work Orders</a>
         <a class="nav-link" href="#"><i class="fas fa-box"></i> Inventory</a>
         <a class="nav-link" href="#"><i class="fas fa-shopping-cart"></i> Purchasing</a>
         <a class="nav-link" href="#"><i class="fas fa-file-invoice"></i> Invoices</a>

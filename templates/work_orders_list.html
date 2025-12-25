@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Orders | Fleet Maintenance Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    {% include 'includes/header.html' %}
+
+    <div class="d-flex">
+        {% include 'includes/sidebar.html' %}
+
+        <div class="main-content bg-white">
+            <div class="p-4">
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="page-title mb-0">Work Orders</h2>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-light rounded border">
+                    <div class="d-flex gap-2 align-items-center">
+                        <a href="{{ url_for('work_order') }}" class="btn btn-primary btn-sm fw-bold">
+                            <i class="fas fa-plus me-1"></i> Add Work Order
+                        </a>
+                    </div>
+                    <div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i
+                                    class="fas fa-search text-muted"></i></span>
+                            <input type="text" class="form-control form-control-sm wo-search-input border-start-0"
+                                placeholder="Search...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded">
+                    <table class="table table-hover mb-0 wo-list-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 40px;"><input type="checkbox" class="form-check-input"></th>
+                                <th>WO #</th>
+                                <th>Description</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Asset</th>
+                                <th>Assigned To</th>
+                                <th>Issued</th>
+                                <th>Completed</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for wo in work_orders %}
+                            <tr>
+                                <td><input type="checkbox" class="form-check-input"></td>
+                                <td>
+                                    <a href="{{ url_for('work_order', wo_id=wo.wo_id) }}" class="wo-link fw-bold">
+                                        {{ wo.wo_id }}
+                                    </a>
+                                </td>
+                                <td>Maintenance on {{ wo.asset_name }}</td>
+                                <td>
+                                    {% set status_class = 'badge-subtle' %}
+                                    {% if wo.status == 'Open' %}{% set status_class = status_class + ' badge-open' %}
+                                    {% elif wo.status == 'In_Progress' %}{% set status_class = status_class + '
+                                    badge-inprogress' %}
+                                    {% elif wo.status == 'Completed' %}{% set status_class = status_class + '
+                                    badge-completed' %}
+                                    {% else %}{% set status_class = status_class + ' badge-onhold' %}{% endif %}
+                                    <span class="{{ status_class }}">{{ wo.status.replace('_', ' ') }}</span>
+                                </td>
+                                <td>
+                                    {% set priority_class = '' %}
+                                    {% if wo.priority == 'Critical' %}{% set priority_class = 'priority-critical' %}
+                                    {% elif wo.priority == 'High' %}{% set priority_class = 'priority-high' %}
+                                    {% elif wo.priority == 'Normal' %}{% set priority_class = 'priority-normal' %}
+                                    {% else %}{% set priority_class = 'priority-low' %}{% endif %}
+                                    <span class="{{ priority_class }}">{{ wo.priority }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-column" style="line-height: 1.2;">
+                                        <span class="fw-bold small">{{ wo.unit_number }}</span>
+                                        <span class="text-muted small">{{ wo.asset_name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    {% if wo.assignee_name != 'Unassigned' %}
+                                    <i class="fas fa-user-circle text-secondary me-1"></i> {{ wo.assignee_name }}
+                                    {% else %}
+                                    <span class="text-muted small fst-italic">Unassigned</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ wo.created_at.strftime('%b %d, %Y') if wo.created_at else '--' }}</td>
+                                <td>{{ wo.completed_at.strftime('%b %d, %Y') if wo.completed_at else '--' }}</td>
+                                <td class="text-end">
+                                    <a href="{{ url_for('work_order', wo_id=wo.wo_id) }}"
+                                        class="btn btn-sm btn-outline-secondary" title="Edit Work Order">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="10" class="text-center py-4 text-muted">No Work Orders Found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="wo-list-footer d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span>Rows per page:</span>
+                        <select class="form-select form-select-sm" style="width: 70px;">
+                            <option>10</option>
+                            <option>25</option>
+                            <option>50</option>
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <span>1-{{ work_orders|length }} of {{ work_orders|length }}</span>
+                        <div>
+                            <button class="pagination-btn disabled"><i class="fas fa-chevron-left"></i></button>
+                            <button class="pagination-btn disabled"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

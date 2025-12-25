@@ -295,3 +295,85 @@ body {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     font-size: 2.5rem; color: #555; font-weight: 300;
 }
+
+/* --- WORK ORDER LIST PAGE STYLES --- */
+
+/* Toolbar Buttons */
+.btn-toolbar-light {
+    background-color: white;
+    border: 1px solid #dce0e5;
+    color: #495057;
+    font-weight: 500;
+    font-size: 0.9rem;
+    padding: 0.375rem 0.75rem;
+}
+.btn-toolbar-light:hover { background-color: #f8f9fa; color: #212529; }
+
+/* Search Input */
+.wo-search-input {
+    border: 1px solid #dce0e5;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.9rem;
+    min-width: 200px;
+}
+
+/* List Table Styles */
+.wo-list-table thead th {
+    background-color: #f8f9fa;
+    color: #495057;
+    font-weight: 600;
+    border-bottom: 2px solid #dee2e6;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wo-list-table tbody td {
+    vertical-align: middle;
+    color: #212529;
+    font-size: 0.9rem;
+    padding: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.wo-link {
+    color: #0d6efd;
+    text-decoration: none;
+    font-weight: 500;
+}
+.wo-link:hover { text-decoration: underline; }
+
+/* Status Badges (Subtle style) */
+.badge-subtle {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    font-weight: 600;
+    border-radius: 0.25rem;
+}
+
+.badge-open { background-color: #e7f1ff; color: #0d6efd; }
+.badge-inprogress { background-color: #fff3cd; color: #ffc107; }
+.badge-onhold { background-color: #e2e3e5; color: #383d41; }
+.badge-completed { background-color: #d1e7dd; color: #0f5132; }
+
+/* Priority Colors */
+.priority-critical { color: #dc3545; font-weight: 600; }
+.priority-high { color: #fd7e14; font-weight: 600; }
+.priority-normal { color: #6c757d; font-weight: 600; }
+.priority-low { color: #adb5bd; font-weight: 600; }
+
+/* Table Footer/Pagination */
+.wo-list-footer {
+    background-color: white;
+    border-top: 1px solid #dee2e6;
+    padding: 10px 15px;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+.pagination-btn {
+    border: none;
+    background: transparent;
+    color: #6c757d;
+    padding: 0 5px;
+}
+.pagination-btn:hover { color: #0d6efd; }
