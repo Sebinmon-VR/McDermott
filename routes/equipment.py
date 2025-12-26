@@ -6,12 +6,12 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import db_connector
 
-equipment_bp = Blueprint('equipment_bp', __name__)
+from . import routes
 
 # --- READ ---
 # --- READ: List Assets & Fetch Categories for Dropdown ---
 # --- READ: List Assets (Now with Category Name JOIN) ---
-@equipment_bp.route('/equipment')
+@routes.route('/equipment')
 def list_equipment():
     conn = db_connector.get_db_connection()
     items = []
@@ -45,7 +45,7 @@ def list_equipment():
     return render_template('equipment.html', equipment_list=items, category_list=categories)
 
 # --- CREATE ASSET ---
-@equipment_bp.route('/add_equipment', methods=['POST'])
+@routes.route('/add_equipment', methods=['POST'])
 def add_equipment():
     print("--- 🟢 STARTING ADD EQUIPMENT ---", flush=True)
     
@@ -87,10 +87,10 @@ def add_equipment():
         finally:
             conn.close()
 
-    return redirect(url_for('equipment_bp.list_equipment'))
+    return redirect(url_for('routes.list_equipment'))
 
 # --- EDIT ASSET ---
-@equipment_bp.route('/edit_equipment', methods=['POST'])
+@routes.route('/edit_equipment', methods=['POST'])
 def edit_equipment():
     print("--- 🟢 STARTING EDIT ---", flush=True)
     asset_id = request.form.get('asset_id')
@@ -119,7 +119,7 @@ def edit_equipment():
         finally:
             conn.close()
             
-    return redirect(url_for('equipment_bp.list_equipment'))
+    return redirect(url_for('routes.list_equipment'))
 
 # --- ADD CATEGORY ---
 import json # Import json at the top of the file
@@ -127,7 +127,7 @@ import json # Import json at the top of the file
 # ... (Keep existing imports and equipment_bp definition)
 
 # --- NEW ROUTE: Get Next Category ID ---
-@equipment_bp.route('/get_next_category_id')
+@routes.route('/get_next_category_id')
 def get_next_category_id():
     conn = db_connector.get_db_connection()
     next_id = 1 # Default if table is empty
@@ -148,7 +148,7 @@ def get_next_category_id():
     return {'next_id': next_id}
 
 # --- UPDATED: Add Category ---
-@equipment_bp.route('/add_category', methods=['POST'])
+@routes.route('/add_category', methods=['POST'])
 def add_category():
     print("--- 🟢 STARTING ADD CATEGORY ---", flush=True)
     
@@ -185,4 +185,4 @@ def add_category():
         finally:
             conn.close()
             
-    return redirect(url_for('equipment_bp.list_equipment'))
+    return redirect(url_for('routes.list_equipment'))

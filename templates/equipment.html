@@ -7,6 +7,7 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <style>
         body { background-color: #f4f6f9; padding: 20px; font-family: 'Segoe UI', sans-serif; }
@@ -91,10 +92,15 @@
     </style>
 </head>
 <body>
+{% include 'includes/header.html' %}
 
-<div class="container-fluid dashboard-container">
+<div class="d-flex">
+    {% include 'includes/sidebar.html' %}
+
+    <div class="main-content">
+<div class="container-fluid dashboard-container"style="margin-top: 5%;">
     
-    <div class="page-header no-print">
+    <div class="page-header no-print" >
         <div class="header-title" style="font-size: 1.5rem; font-weight: 500;">
             <i class="fas fa-list" style="color:#999;"></i> Equipment
         </div>
@@ -242,7 +248,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addEquipmentForm" action="{{ url_for('equipment_bp.add_equipment') }}" method="POST">
+                <form id="addEquipmentForm" action="{{ url_for('add_equipment') }}" method="POST">
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Asset ID <span class="text-danger">*</span></label><input type="text" class="form-control" name="asset_id" required></div>
                         <div class="col-md-6"><label class="form-label">Name <span class="text-danger">*</span></label><input type="text" class="form-control" name="name" required></div>
@@ -286,7 +292,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="editEquipmentForm" action="{{ url_for('equipment_bp.edit_equipment') }}" method="POST">
+                <form id="editEquipmentForm" action="{{ url_for('edit_equipment') }}" method="POST">
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label">Asset ID</label><input type="text" class="form-control bg-light" id="edit_asset_id" name="asset_id" readonly></div>
                         <div class="col-md-6"><label class="form-label">Name</label><input type="text" class="form-control" id="edit_name" name="name"></div>
@@ -314,7 +320,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addCategoryForm" action="{{ url_for('equipment_bp.add_category') }}" method="POST">
+                <form id="addCategoryForm" action="{{ url_for('add_category') }}" method="POST">
                     <div class="mb-3"><label class="form-label">Category ID</label><input type="number" class="form-control bg-light" id="new_category_id" name="category_id" readonly required></div>
                     <div class="mb-3"><label class="form-label">Name <span class="text-danger">*</span></label><input type="text" class="form-control" name="name" required></div>
                     <div class="mb-3"><label class="form-label">Schema Definition</label><textarea class="form-control" name="schema_definition" placeholder='e.g. {"engine": "type"}'></textarea></div>
@@ -326,7 +332,11 @@
         </div>
     </div>
 </div>
+</div>
+</div>
 
+</div>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
